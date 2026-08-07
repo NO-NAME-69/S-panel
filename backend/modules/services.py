@@ -70,6 +70,9 @@ async def list_services(
                 # Get enabled status
                 enabled_result = _run_cmd(f"systemctl is-enabled {svc} 2>/dev/null")
                 enabled = enabled_result.stdout.strip()
+                
+                if enabled == "not-found":
+                    continue
 
                 services.append({
                     "name": svc,
