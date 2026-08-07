@@ -78,9 +78,9 @@ async def install_software(body: InstallRequest, current_user=Depends(get_curren
         # MongoDB requires special repo
         result = _run_cmd(
             "curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | "
-            "sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg && "
+            "sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg --yes && "
             "echo 'deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] "
-            "https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/7.0 multiverse' | "
+            "https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse' | "
             "sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list && "
             "sudo apt-get update && sudo apt-get install -y mongodb-org"
         )
@@ -163,7 +163,7 @@ async def install_stream(websocket: WebSocket, software_id: str = "", token: str
                 "curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | "
                 "sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg --yes && "
                 "echo 'deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] "
-                "https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/7.0 multiverse' | "
+                "https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse' | "
                 "sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list && "
                 "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
                 "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-org"
