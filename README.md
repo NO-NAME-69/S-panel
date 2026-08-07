@@ -62,11 +62,11 @@ By default, the panel backend runs on port **8888**. The installer script automa
 ### Logging In
 1. Open your web browser.
 2. Navigate to: `http://<your-server-ip>:8888` (or `http://localhost:8888` if running locally/WSL).
-3. Log in with the default credentials:
-   - **Username**: `shubh`
-   - **Password**: `Shubh@2402`
+3. Log in with your unique credentials:
+   - During the installation process (`install.sh`), a **random, highly-secure username and password** are automatically generated for you.
+   - Please check the final terminal output of the installer to find your unique login credentials.
 
-> **Warning:** It is highly recommended to change the default password immediately after logging in for the first time via the Settings panel!
+> **Warning:** Please save these credentials safely! You can change your password anytime after logging in via the Settings panel.
 
 ### Common Workflows
 

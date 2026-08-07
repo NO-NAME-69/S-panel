@@ -46,6 +46,14 @@ systemctl daemon-reload
 systemctl enable spanel.service
 systemctl restart spanel.service
 
+echo "Generating secure administrator credentials..."
+ADMIN_USER=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 8 | head -n 1)
+ADMIN_PASS=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9!@#$%^&*' | fold -w 12 | head -n 1)
+
+# Inject credentials into config.py before starting the service
+sed -i "s/DEFAULT_ADMIN_USERNAME = .*/DEFAULT_ADMIN_USERNAME = \"$ADMIN_USER\"/" backend/config.py
+sed -i "s/DEFAULT_ADMIN_PASSWORD = .*/DEFAULT_ADMIN_PASSWORD = \"$ADMIN_PASS\"/" backend/config.py
+
 echo "Configuring firewall..."
 ufw allow 8888/tcp comment 'S Panel'
 ufw allow 22/tcp comment 'SSH'
@@ -55,7 +63,11 @@ ufw allow 443/tcp comment 'HTTPS'
 echo "==============================================="
 echo " Installation Complete!"
 echo " S Panel is running on port 8888"
-echo " Default Username: shubh"
-echo " Default Password: Shubh@2402"
 echo " Access URL: http://localhost:8888"
+echo " "
+echo " --- YOUR LOGIN CREDENTIALS ---"
+echo " Default Username: $ADMIN_USER"
+echo " Default Password: $ADMIN_PASS"
+echo " "
+echo " Please save these credentials safely!"
 echo "==============================================="
