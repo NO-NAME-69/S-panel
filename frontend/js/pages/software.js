@@ -23,6 +23,7 @@ const SoftwarePage = {
         const el = document.getElementById('software-content');
         try {
             const catalog = await API.get('/api/software/catalog');
+            this.catalog = catalog;
             
             let html = '<div class="software-grid">';
             for (const item of catalog) {
@@ -54,6 +55,31 @@ const SoftwarePage = {
     },
 
     install(id, name) {
+        if (id === 'mariadb' || id === 'mysql') {
+            const conflictId = id === 'mariadb' ? 'mysql' : 'mariadb';
+            const conflictItem = this.catalog && this.catalog.find(i => i.id === conflictId);
+            
+            if (conflictItem && conflictItem.installed) {
+                Modal.confirm(
+                    'Database Conflict Warning', 
+                    `You are about to install <strong>${name}</strong>, but <strong>${conflictItem.name}</strong> is already installed.<br><br>
+                    <div style="padding:10px;background:rgba(255,0,0,0.1);border-left:3px solid var(--danger-color);margin-top:10px;margin-bottom:10px;">
+                        <strong>DANGER:</strong> These two database engines conflict directly on the file system and will corrupt each other's data directories if installed on the same host OS!
+                    </div>
+                    <strong>How to avoid this:</strong> If you truly need both engines simultaneously, you should leave one installed through this store, and run the other one inside an isolated <strong>Docker container</strong> (via the Docker tab).<br><br>
+                    Are you absolutely sure you want to proceed and potentially break your existing database?`,
+                    () => this.proceedInstall(id, name),
+                    'Proceed & Break',
+                    true
+                );
+                return;
+            }
+        }
+        
+        this.proceedInstall(id, name);
+    },
+
+    proceedInstall(id, name) {
         Modal.open(`Installing ${name}`, `
             <div id="install-log" class="code-block" style="height:300px;overflow-y:auto;background:#000;color:#0f0;font-size:12px;">
                 Starting installation...<br>
