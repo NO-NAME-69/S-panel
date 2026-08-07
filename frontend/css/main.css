@@ -484,6 +484,8 @@ a:hover {
     backdrop-filter: var(--glass-blur);
     border-bottom: 1px solid var(--glass-border);
     flex-shrink: 0;
+    position: relative;
+    z-index: 50;
 }
 
 .header-left {
