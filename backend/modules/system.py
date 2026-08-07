@@ -9,11 +9,22 @@ import platform
 import time
 from datetime import datetime, timezone
 
+import os
 import psutil
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from auth.middleware import get_current_user
+
+def get_main_disk_path():
+    """Return the primary disk path, detecting WSL to show the host Windows C: drive instead of the virtual Linux disk."""
+    try:
+        with open('/proc/version', 'r') as f:
+            if 'microsoft' in f.read().lower() and os.path.exists('/mnt/c'):
+                return '/mnt/c'
+    except Exception:
+        pass
+    return '/'
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 
@@ -51,7 +62,7 @@ async def get_system_stats(current_user=Depends(get_current_user)):
     cpu_percent = psutil.cpu_percent(interval=0.5, percpu=True)
     memory = psutil.virtual_memory()
     swap = psutil.swap_memory()
-    disk = psutil.disk_usage("/")
+    disk = psutil.disk_usage(get_main_disk_path())
     net = psutil.net_io_counters()
 
     # Top processes
@@ -112,7 +123,7 @@ async def stream_stats(current_user=Depends(get_current_user)):
         while True:
             cpu_percent = psutil.cpu_percent(interval=0)
             memory = psutil.virtual_memory()
-            disk = psutil.disk_usage("/")
+            disk = psutil.disk_usage(get_main_disk_path())
             net = psutil.net_io_counters()
 
             # Calculate network speed
