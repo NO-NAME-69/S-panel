@@ -83,7 +83,12 @@ async def list_services(
 @router.post("/{name}/start")
 async def start_service(name: str, current_user=Depends(get_current_user)):
     """Start a service."""
-    result = _run_cmd(f"sudo systemctl start {name}")
+    if name == "ufw":
+        cmd = "sudo ufw --force enable"
+    else:
+        cmd = f"sudo systemctl start {name}"
+        
+    result = _run_cmd(cmd)
     if result.returncode != 0:
         raise HTTPException(status_code=500, detail=result.stderr)
     return {"message": f"Service {name} started"}
@@ -92,7 +97,12 @@ async def start_service(name: str, current_user=Depends(get_current_user)):
 @router.post("/{name}/stop")
 async def stop_service(name: str, current_user=Depends(get_current_user)):
     """Stop a service."""
-    result = _run_cmd(f"sudo systemctl stop {name}")
+    if name == "ufw":
+        cmd = "sudo ufw disable"
+    else:
+        cmd = f"sudo systemctl stop {name}"
+        
+    result = _run_cmd(cmd)
     if result.returncode != 0:
         raise HTTPException(status_code=500, detail=result.stderr)
     return {"message": f"Service {name} stopped"}
@@ -101,7 +111,12 @@ async def stop_service(name: str, current_user=Depends(get_current_user)):
 @router.post("/{name}/restart")
 async def restart_service(name: str, current_user=Depends(get_current_user)):
     """Restart a service."""
-    result = _run_cmd(f"sudo systemctl restart {name}")
+    if name == "ufw":
+        cmd = "sudo ufw reload"
+    else:
+        cmd = f"sudo systemctl restart {name}"
+        
+    result = _run_cmd(cmd)
     if result.returncode != 0:
         raise HTTPException(status_code=500, detail=result.stderr)
     return {"message": f"Service {name} restarted"}
