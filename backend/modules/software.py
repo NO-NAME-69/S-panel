@@ -67,41 +67,50 @@ async def install_software(body: InstallRequest, current_user=Depends(get_curren
     info = SOFTWARE_CATALOG[body.software_id]
     package = info["package"]
 
+    prevent_start = "printf '#!/bin/sh\\nexit 101\\n' | sudo tee /usr/sbin/policy-rc.d > /dev/null && sudo chmod +x /usr/sbin/policy-rc.d && "
+    cleanup_start = " ; sudo rm -f /usr/sbin/policy-rc.d"
+
     # Special installation procedures for certain software
     if body.software_id == "nodejs":
         # Use NodeSource for latest LTS
-        result = _run_cmd(
+        apt_cmd = (
             "curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && "
-            "sudo apt-get install -y nodejs"
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs"
         )
     elif body.software_id == "mongodb":
         # MongoDB requires special repo
-        result = _run_cmd(
+        apt_cmd = (
             "curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | "
             "sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg --yes && "
             "echo 'deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] "
             "https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse' | "
             "sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list && "
-            "sudo apt-get update && sudo apt-get install -y mongodb-org"
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-org"
         )
     elif body.software_id == "docker":
-        result = _run_cmd(
-            "sudo apt-get update && sudo apt-get install -y docker.io && "
-            "sudo systemctl enable docker && sudo systemctl start docker && "
-            "sudo usermod -aG docker $USER"
+        apt_cmd = (
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io"
         )
     else:
-        result = _run_cmd(f"sudo apt-get update && sudo apt-get install -y {package}")
+        apt_cmd = f"sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y {package}"
+
+    cmd = f"{prevent_start} {apt_cmd} {cleanup_start}"
+
+    if body.software_id == "docker":
+        cmd += " && sudo systemctl enable docker && sudo systemctl start docker && sudo usermod -aG docker $USER"
+
+    result = _run_cmd(cmd)
 
     if result.returncode != 0:
         raise HTTPException(status_code=500, detail=f"Installation failed: {result.stderr}")
 
-    # Start service if applicable
-    if info.get("service"):
+    # Enable service if applicable
+    if info.get("service") and body.software_id != "docker":
         _run_cmd(f"sudo systemctl enable {info['service']}")
-        _run_cmd(f"sudo systemctl start {info['service']}")
 
-    return {"message": f"{info['name']} installed successfully"}
+    return {"message": f"{info['name']} installed successfully and remains Stopped for configuration."}
 
 
 @router.post("/uninstall")
@@ -153,13 +162,17 @@ async def install_stream(websocket: WebSocket, software_id: str = "", token: str
             except Exception:
                 connected = False
 
+        # Use policy-rc.d to prevent services from automatically starting during apt-get install
+        prevent_start = "printf '#!/bin/sh\\nexit 101\\n' | sudo tee /usr/sbin/policy-rc.d > /dev/null && sudo chmod +x /usr/sbin/policy-rc.d && "
+        cleanup_start = " ; sudo rm -f /usr/sbin/policy-rc.d"
+
         if software_id == "nodejs":
-            cmd = (
+            apt_cmd = (
                 "curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && "
                 "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs"
             )
         elif software_id == "mongodb":
-            cmd = (
+            apt_cmd = (
                 "curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | "
                 "sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg --yes && "
                 "echo 'deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] "
@@ -169,14 +182,18 @@ async def install_stream(websocket: WebSocket, software_id: str = "", token: str
                 "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-org"
             )
         elif software_id == "docker":
-            cmd = (
+            apt_cmd = (
                 "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
-                "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io && "
-                "sudo systemctl enable docker && sudo systemctl start docker && "
-                "sudo usermod -aG docker $USER"
+                "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io"
             )
         else:
-            cmd = f"sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y {package}"
+            apt_cmd = f"sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y {package}"
+
+        cmd = f"{prevent_start} {apt_cmd} {cleanup_start}"
+
+        if software_id == "docker":
+            # Docker needs to be started immediately for the Docker tab to work
+            cmd += " && sudo systemctl enable docker && sudo systemctl start docker && sudo usermod -aG docker $USER"
 
         process = await asyncio.create_subprocess_shell(
             cmd,
@@ -200,12 +217,12 @@ async def install_stream(websocket: WebSocket, software_id: str = "", token: str
         await process.wait()
 
         if process.returncode == 0:
-            if info.get("service"):
+            if info.get("service") and software_id != "docker":
+                # Enable but DO NOT start the service automatically, giving user a chance to configure it
                 _run_cmd(f"sudo systemctl enable {info['service']}")
-                _run_cmd(f"sudo systemctl start {info['service']}")
             if connected:
                 try:
-                    await websocket.send_json({"status": "complete", "message": f"{info['name']} installed successfully"})
+                    await websocket.send_json({"status": "complete", "message": f"{info['name']} installed successfully and remains Stopped for configuration."})
                 except Exception:
                     pass
         else:
