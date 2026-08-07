@@ -35,6 +35,7 @@ User=root
 WorkingDirectory=$INSTALL_DIR
 ExecStart=/usr/bin/python3 backend/main.py
 Restart=always
+TimeoutStopSec=5
 
 [Install]
 WantedBy=multi-user.target

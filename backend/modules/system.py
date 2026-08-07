@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 import os
 import psutil
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 from auth.middleware import get_current_user
@@ -116,11 +116,14 @@ async def get_system_stats(current_user=Depends(get_current_user)):
 
 
 @router.get("/stats/stream")
-async def stream_stats(current_user=Depends(get_current_user)):
+async def stream_stats(request: Request, current_user=Depends(get_current_user)):
     """Server-Sent Events stream for real-time stats."""
     async def generate():
         prev_net = psutil.net_io_counters()
         while True:
+            if await request.is_disconnected():
+                break
+                
             cpu_percent = psutil.cpu_percent(interval=0)
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage(get_main_disk_path())
