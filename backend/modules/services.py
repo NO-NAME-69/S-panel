@@ -3,8 +3,10 @@ S Panel - Service Management Module
 Systemd service management.
 """
 
+import os
 import subprocess
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from auth.middleware import get_current_user
 
 router = APIRouter(prefix="/api/services", tags=["services"])
@@ -22,6 +24,24 @@ TRACKED_SERVICES = [
     "ssh", "cron", "ufw", "fail2ban",
     "supervisor", "pm2-root"
 ]
+
+# Default configuration files for common services
+SERVICE_CONFIG_FILES = {
+    "nginx": "/etc/nginx/sites-available/default",
+    "apache2": "/etc/apache2/ports.conf",
+    "mysql": "/etc/mysql/mysql.conf.d/mysqld.cnf",
+    "mariadb": "/etc/mysql/mariadb.conf.d/50-server.cnf",
+    "postgresql": "/etc/postgresql/16/main/postgresql.conf",
+    "mongod": "/etc/mongod.conf",
+    "redis-server": "/etc/redis/redis.conf",
+    "docker": "/etc/docker/daemon.json",
+    "php8.3-fpm": "/etc/php/8.3/fpm/php.ini",
+    "ssh": "/etc/ssh/sshd_config",
+    "cron": "/etc/crontab",
+    "ufw": "/etc/default/ufw",
+    "fail2ban": "/etc/fail2ban/jail.conf",
+    "supervisor": "/etc/supervisor/supervisord.conf"
+}
 
 
 @router.get("/")
@@ -165,3 +185,53 @@ async def get_service_status(name: str, current_user=Depends(get_current_user)):
         "output": result.stdout,
         "active": "active (running)" in result.stdout
     }
+
+
+class ConfigUpdateModel(BaseModel):
+    content: str
+
+
+@router.get("/{name}/config")
+async def get_service_config(name: str, current_user=Depends(get_current_user)):
+    """Get the primary configuration file for a service."""
+    if name not in SERVICE_CONFIG_FILES:
+        raise HTTPException(status_code=400, detail="Config editing not supported for this service.")
+        
+    config_path = SERVICE_CONFIG_FILES[name]
+    
+    # We must read it via sudo since some config files are root-only
+    result = _run_cmd(f"sudo cat {config_path}")
+    if result.returncode != 0:
+        raise HTTPException(status_code=404, detail=f"Configuration file not found at {config_path}")
+        
+    return {
+        "name": name,
+        "path": config_path,
+        "content": result.stdout
+    }
+
+
+@router.put("/{name}/config")
+async def update_service_config(name: str, body: ConfigUpdateModel, current_user=Depends(get_current_user)):
+    """Update the primary configuration file for a service."""
+    if name not in SERVICE_CONFIG_FILES:
+        raise HTTPException(status_code=400, detail="Config editing not supported for this service.")
+        
+    config_path = SERVICE_CONFIG_FILES[name]
+    
+    # Write to a temporary file first, then sudo mv it to bypass permissions issue with writing directly
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as tf:
+        tf.write(body.content)
+        temp_path = tf.name
+        
+    try:
+        # Move the temp file to the actual config path with sudo
+        result = _run_cmd(f"sudo mv {temp_path} {config_path} && sudo chmod 644 {config_path}")
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Failed to save config: {result.stderr}")
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+            
+    return {"message": f"Configuration saved successfully to {config_path}"}

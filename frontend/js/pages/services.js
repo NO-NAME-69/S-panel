@@ -49,6 +49,7 @@ const ServicesPage = {
                                     <i data-lucide="${svc.enabled ? 'toggle-right' : 'toggle-left'}"></i>
                                 </button>
                                 <button class="btn btn-sm btn-secondary" onclick="ServicesPage.viewLogs('${svc.name}')" title="View Logs"><i data-lucide="file-text"></i></button>
+                                <button class="btn btn-sm btn-secondary" onclick="ServicesPage.openConfig('${svc.name}')" title="Config"><i data-lucide="settings"></i></button>
                             </div>
                         </td>
                     </tr>
@@ -73,6 +74,51 @@ const ServicesPage = {
             const result = await API.get(`/api/services/${name}/logs`);
             Modal.open(`Logs: ${name}`, `<pre class="code-block" style="max-height:500px;overflow-y:auto;">${result.logs || 'No logs available'}</pre>`, '', { wide: true });
         } catch (err) { Toast.error('Error', err.message); }
+    },
+
+    async openConfig(name) {
+        try {
+            const result = await API.get(`/api/services/${name}/config`);
+            const body = `
+                <div class="form-group">
+                    <label style="color:var(--text-secondary);font-size:var(--text-sm);margin-bottom:8px;">Editing: <span style="font-family:var(--font-mono);">${result.path}</span></label>
+                    <textarea id="config-editor" class="form-control" style="height:400px;font-family:var(--font-mono);font-size:13px;white-space:pre;overflow-wrap:normal;overflow-x:auto;" spellcheck="false">${result.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                </div>
+            `;
+            const footer = `
+                <button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
+                <button class="btn btn-primary" onclick="ServicesPage.saveConfig('${name}', '${result.path}')">Save Config</button>
+            `;
+            Modal.open(`Config: ${name}`, body, footer, { wide: true });
+        } catch (err) { Toast.error('Error', err.message); }
+    },
+
+    async saveConfig(name, path) {
+        try {
+            const content = document.getElementById('config-editor').value;
+            const btn = document.querySelector('#modal-footer .btn-primary');
+            const originalText = btn.textContent;
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+            
+            await API.put(`/api/services/${name}/config`, { content });
+            Toast.success('Success', `Configuration saved for ${name}`);
+            Modal.close();
+            
+            // Suggest restart
+            setTimeout(() => {
+                Modal.confirm('Restart Service', `Do you want to restart ${name} now to apply the new configuration?`, () => {
+                    this.action(name, 'restart');
+                }, 'Restart Now', false);
+            }, 300);
+        } catch (err) { 
+            Toast.error('Error', err.message); 
+            const btn = document.querySelector('#modal-footer .btn-primary');
+            if (btn) {
+                btn.textContent = 'Save Config';
+                btn.disabled = false;
+            }
+        }
     },
 
     destroy() {}
