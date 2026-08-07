@@ -22,7 +22,9 @@ apt-get update
 apt-get install -y python3-pip python3-venv python3-dev ufw curl wget nginx
 
 echo "Installing Python dependencies..."
-pip install --break-system-packages -r backend/requirements.txt
+python3 -m venv venv
+source venv/bin/activate
+pip install -r backend/requirements.txt
 
 echo "Creating systemd service..."
 cat > /etc/systemd/system/spanel.service << EOF
@@ -33,7 +35,7 @@ After=network.target
 [Service]
 User=root
 WorkingDirectory=$INSTALL_DIR
-ExecStart=/usr/bin/python3 backend/main.py
+ExecStart=$INSTALL_DIR/venv/bin/python3 backend/main.py
 Restart=always
 TimeoutStopSec=5
 
