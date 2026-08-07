@@ -121,6 +121,10 @@ async def read_file(
         with open(path, 'r', errors='replace') as f:
             content = f.read()
         return {"path": path, "content": content, "info": _get_file_info(path)}
+    except OSError as e:
+        if e.errno == 22:
+            raise HTTPException(status_code=400, detail="Cannot read this special system file (it may be write-only).")
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
