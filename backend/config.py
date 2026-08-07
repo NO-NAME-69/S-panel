@@ -69,7 +69,7 @@ SOFTWARE_CATALOG = {
     "mongodb": {
         "name": "MongoDB",
         "description": "NoSQL document database",
-        "package": "mongod",
+        "package": "mongodb-org",
         "service": "mongod",
         "icon": "🍃",
         "category": "Database"
