@@ -45,10 +45,15 @@ const API = {
             const response = await fetch(`${this.baseUrl}${url}`, config);
 
             if (response.status === 401) {
-                this.setToken(null);
-                window.location.hash = '';
-                Auth.showLogin();
-                throw new Error('Session expired. Please login again.');
+                if (url === '/api/auth/login') {
+                    const result = await response.json();
+                    throw new Error(result.detail || 'Invalid username or password');
+                } else {
+                    this.setToken(null);
+                    window.location.hash = '';
+                    Auth.showLogin();
+                    throw new Error('Session expired. Please login again.');
+                }
             }
 
             const result = await response.json();
