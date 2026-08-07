@@ -59,6 +59,13 @@ async def list_services(
         for svc in TRACKED_SERVICES:
             result = _run_cmd(f"systemctl is-active {svc} 2>/dev/null")
             active = result.stdout.strip()
+            
+            # Special case for UFW: systemctl reports active even if firewall is disabled
+            if svc == "ufw":
+                ufw_status = _run_cmd("sudo ufw status")
+                if "Status: inactive" in ufw_status.stdout:
+                    active = "inactive"
+            
             if active in ['active', 'inactive', 'failed', 'activating', 'deactivating']:
                 # Get enabled status
                 enabled_result = _run_cmd(f"systemctl is-enabled {svc} 2>/dev/null")
