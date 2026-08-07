@@ -74,12 +74,12 @@ const TerminalPage = {
         this.term.open(container);
         this.fitAddon.fit();
 
-        window.addEventListener('resize', this.handleResize);
+        window.addEventListener('resize', this.handleResize.bind(this));
 
         this.connect();
     },
 
-    handleResize = () => {
+    handleResize() {
         if (this.fitAddon && this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.fitAddon.fit();
             const cols = this.term.cols;
