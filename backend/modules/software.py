@@ -137,16 +137,24 @@ async def install_stream(websocket: WebSocket, software_id: str = "", token: str
         await websocket.close(code=4004, reason="Software not found")
         return
 
-    await websocket.accept()
+    try:
+        await websocket.accept()
+        connected = True
+    except Exception:
+        return
 
     info = SOFTWARE_CATALOG[software_id]
     package = info["package"]
 
     try:
-        await websocket.send_json({"status": "starting", "message": f"Installing {info['name']}..."})
+        if connected:
+            try:
+                await websocket.send_json({"status": "starting", "message": f"Installing {info['name']}..."})
+            except Exception:
+                connected = False
 
         process = await asyncio.create_subprocess_shell(
-            f"sudo apt-get update && sudo apt-get install -y {package}",
+            f"sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y {package}",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT
         )
@@ -155,10 +163,14 @@ async def install_stream(websocket: WebSocket, software_id: str = "", token: str
             line = await process.stdout.readline()
             if not line:
                 break
-            await websocket.send_json({
-                "status": "progress",
-                "message": line.decode('utf-8', errors='replace').strip()
-            })
+            if connected:
+                try:
+                    await websocket.send_json({
+                        "status": "progress",
+                        "message": line.decode('utf-8', errors='replace').strip()
+                    })
+                except Exception:
+                    connected = False  # Stop trying to send, but keep reading stdout
 
         await process.wait()
 
@@ -166,19 +178,21 @@ async def install_stream(websocket: WebSocket, software_id: str = "", token: str
             if info.get("service"):
                 _run_cmd(f"sudo systemctl enable {info['service']}")
                 _run_cmd(f"sudo systemctl start {info['service']}")
-            await websocket.send_json({"status": "complete", "message": f"{info['name']} installed successfully"})
+            if connected:
+                try:
+                    await websocket.send_json({"status": "complete", "message": f"{info['name']} installed successfully"})
+                except Exception:
+                    pass
         else:
-            await websocket.send_json({"status": "error", "message": "Installation failed"})
+            if connected:
+                try:
+                    await websocket.send_json({"status": "error", "message": "Installation failed"})
+                except Exception:
+                    pass
 
-    except WebSocketDisconnect:
-        pass
-    except Exception as e:
-        try:
-            await websocket.send_json({"status": "error", "message": str(e)})
-        except Exception:
-            pass
     finally:
-        try:
-            await websocket.close()
-        except Exception:
-            pass
+        if connected:
+            try:
+                await websocket.close()
+            except Exception:
+                pass
