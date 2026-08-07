@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="S Panel - Server Management Panel for Linux">
+    <title>S Panel - Server Management</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- xterm.js for terminal -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-container">
+            <div class="login-card glass-card">
+                <div class="login-logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="48" height="48" rx="12" fill="url(#logo-gradient)"/>
+                            <path d="M14 30C14 30 16 26 24 26C32 26 34 30 34 30" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                            <path d="M24 14V22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                            <path d="M18 16L24 22L30 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="24" cy="34" r="2" fill="white"/>
+                            <defs>
+                                <linearGradient id="logo-gradient" x1="0" y1="0" x2="48" y2="48">
+                                    <stop stop-color="#6366f1"/>
+                                    <stop offset="1" stop-color="#8b5cf6"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h1>S Panel</h1>
+                    <p class="login-subtitle">Server Management Panel</p>
+                </div>
+
+                <form id="login-form" class="login-form">
+                    <div class="form-group">
+                        <label for="login-username">Username</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="user" class="input-icon"></i>
+                            <input type="text" id="login-username" placeholder="Enter username" required autocomplete="username">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="lock" class="input-icon"></i>
+                            <input type="password" id="login-password" placeholder="Enter password" required autocomplete="current-password">
+                        </div>
+                    </div>
+                    <div id="login-error" class="login-error" style="display:none;"></div>
+                    <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-loader" style="display:none;"></span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="login-footer">
+                <p>S Panel v1.0 &middot; Secure Server Management</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="app-container" style="display:none;">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="logo-icon-small">
+                        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="32" height="32" rx="8" fill="url(#logo-gradient-sm)"/>
+                            <path d="M10 21C10 21 11.5 18 16 18C20.5 18 22 21 22 21" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M16 10V15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M13 11L16 15L19 11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="16" cy="24" r="1.5" fill="white"/>
+                            <defs>
+                                <linearGradient id="logo-gradient-sm" x1="0" y1="0" x2="32" y2="32">
+                                    <stop stop-color="#6366f1"/>
+                                    <stop offset="1" stop-color="#8b5cf6"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <span class="sidebar-title">S Panel</span>
+                </div>
+                <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">
+                    <i data-lucide="panel-left-close"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-menu">
+                <div class="menu-section">
+                    <span class="menu-section-title">Overview</span>
+                    <a href="#dashboard" class="menu-item active" data-page="dashboard">
+                        <i data-lucide="layout-dashboard"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </div>
+
+                <div class="menu-section">
+                    <span class="menu-section-title">Server</span>
+                    <a href="#websites" class="menu-item" data-page="websites">
+                        <i data-lucide="globe"></i>
+                        <span>Websites</span>
+                    </a>
+                    <a href="#databases" class="menu-item" data-page="databases">
+                        <i data-lucide="database"></i>
+                        <span>Databases</span>
+                    </a>
+                    <a href="#files" class="menu-item" data-page="files">
+                        <i data-lucide="folder-open"></i>
+                        <span>File Manager</span>
+                    </a>
+                    <a href="#terminal" class="menu-item" data-page="terminal">
+                        <i data-lucide="terminal-square"></i>
+                        <span>Terminal</span>
+                    </a>
+                </div>
+
+                <div class="menu-section">
+                    <span class="menu-section-title">Security</span>
+                    <a href="#ssl" class="menu-item" data-page="ssl">
+                        <i data-lucide="shield-check"></i>
+                        <span>SSL Certificates</span>
+                    </a>
+                    <a href="#firewall" class="menu-item" data-page="firewall">
+                        <i data-lucide="shield"></i>
+                        <span>Firewall</span>
+                    </a>
+                </div>
+
+                <div class="menu-section">
+                    <span class="menu-section-title">Management</span>
+                    <a href="#services" class="menu-item" data-page="services">
+                        <i data-lucide="server"></i>
+                        <span>Services</span>
+                    </a>
+                    <a href="#cron" class="menu-item" data-page="cron">
+                        <i data-lucide="clock"></i>
+                        <span>Cron Jobs</span>
+                    </a>
+                    <a href="#docker" class="menu-item" data-page="docker">
+                        <i data-lucide="container"></i>
+                        <span>Docker</span>
+                    </a>
+                    <a href="#software" class="menu-item" data-page="software">
+                        <i data-lucide="package"></i>
+                        <span>Software Store</span>
+                    </a>
+                </div>
+
+                <div class="menu-section">
+                    <span class="menu-section-title">Settings</span>
+                    <a href="#settings" class="menu-item" data-page="settings">
+                        <i data-lucide="settings"></i>
+                        <span>Settings</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="user-avatar" id="user-avatar">S</div>
+                    <div class="user-info">
+                        <span class="user-name" id="sidebar-username">shubh</span>
+                        <span class="user-role">Administrator</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="mobile-menu-btn" class="mobile-menu-btn">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="breadcrumb" id="breadcrumb">
+                        <span class="breadcrumb-item">Dashboard</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-stats" id="header-stats">
+                        <div class="header-stat">
+                            <i data-lucide="cpu" class="stat-icon"></i>
+                            <span id="header-cpu">0%</span>
+                        </div>
+                        <div class="header-stat">
+                            <i data-lucide="memory-stick" class="stat-icon"></i>
+                            <span id="header-mem">0%</span>
+                        </div>
+                    </div>
+                    <button class="header-btn" id="refresh-btn" title="Refresh">
+                        <i data-lucide="refresh-cw"></i>
+                    </button>
+                    <div class="header-user-menu">
+                        <button class="header-btn user-menu-trigger" id="user-menu-trigger">
+                            <i data-lucide="user"></i>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <a href="#settings" class="dropdown-item" data-page="settings">
+                                <i data-lucide="settings"></i>
+                                <span>Settings</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item logout-btn" id="logout-btn">
+                                <i data-lucide="log-out"></i>
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div id="page-content" class="page-content">
+                <!-- Pages are loaded here dynamically -->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Modal Container -->
+    <div id="modal-overlay" class="modal-overlay" style="display:none;">
+        <div class="modal-container" id="modal-container">
+            <div class="modal-header">
+                <h3 id="modal-title">Modal</h3>
+                <button class="modal-close" id="modal-close">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/api.js"></script>
+    <script src="/js/components/toast.js"></script>
+    <script src="/js/components/modal.js"></script>
+    <script src="/js/components/charts.js"></script>
+    <script src="/js/components/table.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/pages/dashboard.js"></script>
+    <script src="/js/pages/websites.js"></script>
+    <script src="/js/pages/databases.js"></script>
+    <script src="/js/pages/files.js"></script>
+    <script src="/js/pages/terminal.js"></script>
+    <script src="/js/pages/ssl.js"></script>
+    <script src="/js/pages/services.js"></script>
+    <script src="/js/pages/firewall.js"></script>
+    <script src="/js/pages/cron.js"></script>
+    <script src="/js/pages/docker.js"></script>
+    <script src="/js/pages/software.js"></script>
+    <script src="/js/pages/settings.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
