@@ -70,4 +70,4 @@ python3 backend/main.py
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This software and its documentation are the proprietary property of Shubh. All Rights Reserved. You may not use, copy, modify, distribute, or sell this software without express written permission.
