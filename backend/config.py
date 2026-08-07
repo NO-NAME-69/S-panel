@@ -129,5 +129,45 @@ SOFTWARE_CATALOG = {
         "service": "postgresql",
         "icon": "🐘",
         "category": "Database"
+    },
+    "apache2": {
+        "name": "Apache",
+        "description": "Popular open-source HTTP web server",
+        "package": "apache2",
+        "service": "apache2",
+        "icon": "🪶",
+        "category": "Web Server"
+    },
+    "mariadb": {
+        "name": "MariaDB",
+        "description": "Community-developed fork of MySQL",
+        "package": "mariadb-server",
+        "service": "mariadb",
+        "icon": "🦭",
+        "category": "Database"
+    },
+    "ssh": {
+        "name": "OpenSSH",
+        "description": "Secure shell (SSH) protocol suite",
+        "package": "openssh-server",
+        "service": "ssh",
+        "icon": "🔑",
+        "category": "Security"
+    },
+    "fail2ban": {
+        "name": "Fail2ban",
+        "description": "Intrusion prevention software framework",
+        "package": "fail2ban",
+        "service": "fail2ban",
+        "icon": "🛡️",
+        "category": "Security"
+    },
+    "supervisor": {
+        "name": "Supervisor",
+        "description": "Process control system for Linux",
+        "package": "supervisor",
+        "service": "supervisor",
+        "icon": "⚙️",
+        "category": "Management"
     }
 }
