@@ -153,8 +153,33 @@ async def install_stream(websocket: WebSocket, software_id: str = "", token: str
             except Exception:
                 connected = False
 
+        if software_id == "nodejs":
+            cmd = (
+                "curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && "
+                "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs"
+            )
+        elif software_id == "mongodb":
+            cmd = (
+                "curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | "
+                "sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg --yes && "
+                "echo 'deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] "
+                "https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/7.0 multiverse' | "
+                "sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list && "
+                "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
+                "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-org"
+            )
+        elif software_id == "docker":
+            cmd = (
+                "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
+                "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io && "
+                "sudo systemctl enable docker && sudo systemctl start docker && "
+                "sudo usermod -aG docker $USER"
+            )
+        else:
+            cmd = f"sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y {package}"
+
         process = await asyncio.create_subprocess_shell(
-            f"sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y {package}",
+            cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT
         )
