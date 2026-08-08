@@ -78,7 +78,12 @@ const App = {
     },
 
     navigate(pageName) {
-        window.location.hash = pageName;
+        const targetHash = '#' + pageName.replace('#', '');
+        if (window.location.hash === targetHash) {
+            this.handleRoute();
+        } else {
+            window.location.hash = targetHash;
+        }
     },
 
     async handleRoute() {
