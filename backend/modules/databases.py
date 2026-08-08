@@ -69,6 +69,7 @@ async def list_mysql_databases(current_user=Depends(get_current_user)):
     for db_name in databases:
         size_result = _run_cmd(
             f"sudo mysql -e \"SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = '{db_name}';\" -s -N"
+        )
         size_str = size_result.stdout.strip()
         size = 0
         if size_result.returncode == 0 and size_str and size_str != 'NULL':
