@@ -91,7 +91,7 @@ async def list_mysql_databases(current_user=Depends(get_current_user)):
 async def create_mysql_database(body: MySQLDatabaseCreate, current_user=Depends(get_current_user)):
     """Create a new MySQL database."""
     result = _run_cmd(
-        f"sudo mysql -e \"CREATE DATABASE IF NOT EXISTS `{body.name}` CHARACTER SET {body.charset} COLLATE {body.collation};\""
+        f"sudo mysql -e \"CREATE DATABASE IF NOT EXISTS \\`{body.name}\\` CHARACTER SET {body.charset} COLLATE {body.collation};\""
     )
     if result.returncode != 0:
         raise HTTPException(status_code=500, detail=result.stderr)
@@ -104,7 +104,7 @@ async def delete_mysql_database(name: str, current_user=Depends(get_current_user
     if name in ['information_schema', 'mysql', 'performance_schema', 'sys']:
         raise HTTPException(status_code=400, detail="Cannot delete system database")
 
-    result = _run_cmd(f"sudo mysql -e \"DROP DATABASE IF EXISTS `{name}`;\"")
+    result = _run_cmd(f"sudo mysql -e \"DROP DATABASE IF EXISTS \\`{name}\\`;\"")
     if result.returncode != 0:
         raise HTTPException(status_code=500, detail=result.stderr)
     return {"message": f"Database '{name}' deleted"}
@@ -137,7 +137,7 @@ async def create_mysql_user(body: MySQLUserCreate, current_user=Depends(get_curr
 
     if body.database:
         _run_cmd(
-            f"sudo mysql -e \"GRANT ALL PRIVILEGES ON `{body.database}`.* TO '{body.username}'@'{body.host}'; FLUSH PRIVILEGES;\""
+            f"sudo mysql -e \"GRANT ALL PRIVILEGES ON \\`{body.database}\\`.* TO '{body.username}'@'{body.host}'; FLUSH PRIVILEGES;\""
         )
 
     return {"message": f"User '{body.username}' created"}
