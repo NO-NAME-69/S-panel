@@ -69,13 +69,24 @@ async def list_mysql_databases(current_user=Depends(get_current_user)):
     for db_name in databases:
         size_result = _run_cmd(
             f"sudo mysql -e \"SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = '{db_name}';\" -s -N"
-        )
-        size = int(size_result.stdout.strip() or 0) if size_result.returncode == 0 else 0
+        size_str = size_result.stdout.strip()
+        size = 0
+        if size_result.returncode == 0 and size_str and size_str != 'NULL':
+            try:
+                size = int(size_str)
+            except ValueError:
+                size = 0
 
         tables_result = _run_cmd(
             f"sudo mysql -e \"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{db_name}';\" -s -N"
         )
-        tables = int(tables_result.stdout.strip() or 0) if tables_result.returncode == 0 else 0
+        tables_str = tables_result.stdout.strip()
+        tables = 0
+        if tables_result.returncode == 0 and tables_str and tables_str != 'NULL':
+            try:
+                tables = int(tables_str)
+            except ValueError:
+                tables = 0
 
         db_info.append({
             "name": db_name,
