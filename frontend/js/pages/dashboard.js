@@ -192,15 +192,17 @@ const DashboardPage = {
     },
 
     updateLiveStats(data) {
+        const formatPct = (v) => parseFloat(Number(v).toFixed(2));
+        
         // Update stat cards
         const cpuEl = document.getElementById('dash-cpu');
         const memEl = document.getElementById('dash-mem');
         const diskEl = document.getElementById('dash-disk');
         const netEl = document.getElementById('dash-net');
 
-        if (cpuEl) cpuEl.textContent = data.cpu + '%';
-        if (memEl) memEl.textContent = data.memory + '%';
-        if (diskEl) diskEl.textContent = data.disk + '%';
+        if (cpuEl) cpuEl.textContent = formatPct(data.cpu) + '%';
+        if (memEl) memEl.textContent = formatPct(data.memory) + '%';
+        if (diskEl) diskEl.textContent = formatPct(data.disk) + '%';
         if (netEl) netEl.textContent = '↑ ' + this.formatSpeed(data.net_sent) + ' ↓ ' + this.formatSpeed(data.net_recv);
 
         // Update progress bars
@@ -208,9 +210,9 @@ const DashboardPage = {
         const memBar = document.getElementById('dash-mem-bar');
         const diskBar = document.getElementById('dash-disk-bar');
 
-        if (cpuBar) cpuBar.style.width = data.cpu + '%';
-        if (memBar) memBar.style.width = data.memory + '%';
-        if (diskBar) diskBar.style.width = data.disk + '%';
+        if (cpuBar) cpuBar.style.width = formatPct(data.cpu) + '%';
+        if (memBar) memBar.style.width = formatPct(data.memory) + '%';
+        if (diskBar) diskBar.style.width = formatPct(data.disk) + '%';
 
         // Danger coloring
         if (cpuBar && data.cpu > 80) cpuBar.parentElement.classList.add('danger');
@@ -228,12 +230,12 @@ const DashboardPage = {
         // Header stats
         const headerCpu = document.getElementById('header-cpu');
         const headerMem = document.getElementById('header-mem');
-        if (headerCpu) headerCpu.textContent = data.cpu + '%';
-        if (headerMem) headerMem.textContent = data.memory + '%';
+        if (headerCpu) headerCpu.textContent = formatPct(data.cpu) + '%';
+        if (headerMem) headerMem.textContent = formatPct(data.memory) + '%';
 
         // Charts
-        if (this.charts.cpu) this.charts.cpu.addPoint(data.cpu);
-        if (this.charts.mem) this.charts.mem.addPoint(data.memory);
+        if (this.charts.cpu) this.charts.cpu.addPoint(formatPct(data.cpu));
+        if (this.charts.mem) this.charts.mem.addPoint(formatPct(data.memory));
     },
 
     updateUI(stats) {
