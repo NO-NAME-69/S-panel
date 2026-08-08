@@ -18,6 +18,7 @@ const App = {
         'settings': SettingsPage
     },
     currentPage: null,
+    navigationSetup: false,
 
     async init() {
         Auth.init();
@@ -32,6 +33,9 @@ const App = {
     },
 
     setupNavigation() {
+        if (this.navigationSetup) return;
+        this.navigationSetup = true;
+
         // Sidebar toggle
         document.getElementById('sidebar-toggle').addEventListener('click', () => {
             document.getElementById('sidebar').classList.toggle('collapsed');
@@ -63,7 +67,7 @@ const App = {
 
         // Hash routing
         window.addEventListener('hashchange', () => this.handleRoute());
-        
+
         // Setup links
         document.querySelectorAll('a[data-page], button[data-page]').forEach(el => {
             el.addEventListener('click', (e) => {
@@ -91,7 +95,7 @@ const App = {
 
         const hash = window.location.hash.replace('#', '') || 'dashboard';
         const pageName = hash.split('?')[0];
-        
+
         if (!this.pages[pageName]) {
             this.navigate('dashboard');
             return;
@@ -114,10 +118,10 @@ const App = {
 
         // Load new page
         this.currentPage = this.pages[pageName];
-        
+
         const contentEl = document.getElementById('page-content');
         contentEl.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading ${title}...</p></div>`;
-        
+
         try {
             await this.currentPage.render();
         } catch (err) {

@@ -54,6 +54,7 @@ const Auth = {
             if (avatarEl) avatarEl.textContent = result.user.username[0].toUpperCase();
             if (usernameEl) usernameEl.textContent = result.user.username;
 
+            App.setupNavigation();
             this.showApp();
             App.navigate('dashboard');
             Toast.success('Welcome back', `Logged in as ${result.user.username}`);
