@@ -138,7 +138,7 @@ async def export_mysql_database(name: str, token: str = None):
 
     async def generate():
         proc = await asyncio.create_subprocess_shell(
-            f"sudo mysqldump \\`{name}\\`",
+            f"sudo mysqldump '{name}'",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -171,7 +171,7 @@ async def import_mysql_database(name: str, file: UploadFile = File(...), current
             while chunk := await file.read(65536):
                 f.write(chunk)
                 
-        result = _run_cmd(f"sudo mysql \\`{name}\\` < {path}")
+        result = _run_cmd(f"sudo mysql '{name}' < {path}")
         if result.returncode != 0:
             raise HTTPException(status_code=500, detail=f"Import failed: {result.stderr}")
     finally:
