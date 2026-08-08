@@ -116,8 +116,15 @@ async def get_system_stats(current_user=Depends(get_current_user)):
 
 
 @router.get("/stats/stream")
-async def stream_stats(request: Request, current_user=Depends(get_current_user)):
+async def stream_stats(request: Request, token: str = None):
     """Server-Sent Events stream for real-time stats."""
+    from auth.middleware import get_current_user_ws
+    from fastapi import HTTPException
+    
+    user = await get_current_user_ws(token) if token else None
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     async def generate():
         prev_net = psutil.net_io_counters()
         while True:
