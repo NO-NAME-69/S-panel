@@ -52,7 +52,13 @@ const DatabasesPage = {
                         <td>${db.tables}</td>
                         <td>${DashboardPage.formatBytes(db.size)}</td>
                         <td>${db.system ? '<span class="badge badge-warning">System</span>' : '<span class="badge badge-info">User</span>'}</td>
-                        <td>${!db.system ? `<button class="btn btn-sm btn-danger" onclick="DatabasesPage.deleteDb('${db.name}')"><i data-lucide="trash-2"></i></button>` : ''}</td>
+                        <td>
+                            ${!db.system ? `
+                                <button class="btn btn-sm btn-secondary" title="Export" onclick="window.open('/api/databases/mysql/${db.name}/export?token=' + API.token)"><i data-lucide="download"></i></button>
+                                <button class="btn btn-sm btn-secondary" title="Import" onclick="DatabasesPage.importDb('${db.name}')"><i data-lucide="upload"></i></button>
+                                <button class="btn btn-sm btn-danger" title="Delete" onclick="DatabasesPage.deleteDb('${db.name}')"><i data-lucide="trash-2"></i></button>
+                            ` : ''}
+                        </td>
                     </tr>`;
                 }
                 html += '</tbody></table></div>';
@@ -67,7 +73,15 @@ const DatabasesPage = {
                 const dbs = await API.get('/api/databases/mongodb/databases');
                 let html = '<div class="table-container"><table class="data-table"><thead><tr><th>Database</th><th>Size</th><th>Actions</th></tr></thead><tbody>';
                 for (const db of dbs) {
-                    html += `<tr><td style="font-family:var(--font-mono);">${db.name}</td><td>${DashboardPage.formatBytes(db.sizeOnDisk || 0)}</td><td><button class="btn btn-sm btn-danger" onclick="DatabasesPage.deleteMongoDb('${db.name}')"><i data-lucide="trash-2"></i></button></td></tr>`;
+                    html += `<tr>
+                        <td style="font-family:var(--font-mono);">${db.name}</td>
+                        <td>${DashboardPage.formatBytes(db.sizeOnDisk || 0)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" title="Export" onclick="window.open('/api/databases/mongodb/${db.name}/export?token=' + API.token)"><i data-lucide="download"></i></button>
+                            <button class="btn btn-sm btn-secondary" title="Import" onclick="DatabasesPage.importMongoDb('${db.name}')"><i data-lucide="upload"></i></button>
+                            <button class="btn btn-sm btn-danger" title="Delete" onclick="DatabasesPage.deleteMongoDb('${db.name}')"><i data-lucide="trash-2"></i></button>
+                        </td>
+                    </tr>`;
                 }
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
@@ -105,6 +119,60 @@ const DatabasesPage = {
         Modal.confirm('Delete Database', `Delete MongoDB database <strong>${name}</strong>?`, async () => {
             try { await API.delete(`/api/databases/mongodb/databases/${name}`); Toast.success('Deleted', `Database ${name} deleted`); this.loadDatabases(); } catch (err) { Toast.error('Error', err.message); }
         }, 'Delete', true);
+    },
+
+    importDb(name) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.sql';
+        input.onchange = async e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            Toast.success('Importing', 'Import started, please wait...', 5000);
+            try {
+                const res = await fetch(`/api/databases/mysql/databases/${name}/import`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + API.token },
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Import failed');
+                Toast.success('Imported', data.message);
+                this.loadDatabases();
+            } catch (err) {
+                Toast.error('Error', err.message);
+            }
+        };
+        input.click();
+    },
+
+    importMongoDb(name) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.gz';
+        input.onchange = async e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            Toast.success('Importing', 'Import started, please wait...', 5000);
+            try {
+                const res = await fetch(`/api/databases/mongodb/databases/${name}/import`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + API.token },
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Import failed');
+                Toast.success('Imported', data.message);
+                this.loadDatabases();
+            } catch (err) {
+                Toast.error('Error', err.message);
+            }
+        };
+        input.click();
     },
 
     destroy() {}

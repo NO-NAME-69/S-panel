@@ -93,6 +93,20 @@ async def install_software(body: InstallRequest, current_user=Depends(get_curren
             "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
             "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io"
         )
+    elif body.software_id == "phpmyadmin":
+        apt_cmd = (
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io && "
+            "sudo systemctl enable docker && sudo systemctl start docker && "
+            "sudo docker run --name phpmyadmin -d -e PMA_HOST=172.17.0.1 -p 8080:80 --restart always phpmyadmin"
+        )
+    elif body.software_id == "mongo-express":
+        apt_cmd = (
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io && "
+            "sudo systemctl enable docker && sudo systemctl start docker && "
+            "sudo docker run --name mongo-express -d -e ME_CONFIG_MONGODB_SERVER=172.17.0.1 -p 8081:8081 --restart always mongo-express"
+        )
     else:
         apt_cmd = f"sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y {package}"
 
@@ -185,6 +199,22 @@ async def install_stream(websocket: WebSocket, software_id: str = "", token: str
             apt_cmd = (
                 "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
                 "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io"
+            )
+        elif software_id == "phpmyadmin":
+            apt_cmd = (
+                "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
+                "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io && "
+                "sudo systemctl enable docker && sudo systemctl start docker && "
+                "sudo docker stop phpmyadmin || true && sudo docker rm phpmyadmin || true && "
+                "sudo docker run --name phpmyadmin -d -e PMA_HOST=172.17.0.1 -p 8080:80 --restart always phpmyadmin"
+            )
+        elif software_id == "mongo-express":
+            apt_cmd = (
+                "sudo DEBIAN_FRONTEND=noninteractive apt-get update && "
+                "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io && "
+                "sudo systemctl enable docker && sudo systemctl start docker && "
+                "sudo docker stop mongo-express || true && sudo docker rm mongo-express || true && "
+                "sudo docker run --name mongo-express -d -e ME_CONFIG_MONGODB_SERVER=172.17.0.1 -p 8081:8081 --restart always mongo-express"
             )
         else:
             apt_cmd = f"sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y {package}"

@@ -169,5 +169,21 @@ SOFTWARE_CATALOG = {
         "service": "supervisor",
         "icon": "⚙️",
         "category": "Management"
+    },
+    "phpmyadmin": {
+        "name": "phpMyAdmin",
+        "description": "Web interface for managing MySQL databases",
+        "package": "phpmyadmin",
+        "service": None,
+        "icon": "🐘",
+        "category": "Database"
+    },
+    "mongo-express": {
+        "name": "Mongo-Express",
+        "description": "Web-based MongoDB admin interface",
+        "package": "nodejs",  # Since it installs via npm
+        "service": None,
+        "icon": "🍃",
+        "category": "Database"
     }
 }

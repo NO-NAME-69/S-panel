@@ -3,10 +3,14 @@ S Panel - Database Management Module
 MySQL and MongoDB database management.
 """
 
+import os
+import tempfile
 import subprocess
-from fastapi import APIRouter, Depends, HTTPException
+import asyncio
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from auth.middleware import get_current_user
+from auth.middleware import get_current_user, get_current_user_ws
 
 router = APIRouter(prefix="/api/databases", tags=["databases"])
 
@@ -122,6 +126,60 @@ async def delete_mysql_database(name: str, current_user=Depends(get_current_user
     return {"message": f"Database '{name}' deleted"}
 
 
+@router.get("/mysql/databases/{name}/export")
+async def export_mysql_database(name: str, token: str = None):
+    """Export a MySQL database as a .sql file stream."""
+    user = await get_current_user_ws(token) if token else None
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    if name in ['information_schema', 'mysql', 'performance_schema', 'sys']:
+        raise HTTPException(status_code=400, detail="Cannot export system database")
+
+    async def generate():
+        proc = await asyncio.create_subprocess_shell(
+            f"sudo mysqldump \\`{name}\\`",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        try:
+            while True:
+                chunk = await proc.stdout.read(65536)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            if proc.returncode is None:
+                proc.terminate()
+
+    return StreamingResponse(
+        generate(),
+        media_type="application/sql",
+        headers={"Content-Disposition": f"attachment; filename={name}.sql"}
+    )
+
+
+@router.post("/mysql/databases/{name}/import")
+async def import_mysql_database(name: str, file: UploadFile = File(...), current_user=Depends(get_current_user)):
+    """Import a .sql file into a MySQL database."""
+    if name in ['information_schema', 'mysql', 'performance_schema', 'sys']:
+        raise HTTPException(status_code=400, detail="Cannot import into system database")
+
+    fd, path = tempfile.mkstemp(suffix=".sql")
+    try:
+        with os.fdopen(fd, 'wb') as f:
+            while chunk := await file.read(65536):
+                f.write(chunk)
+                
+        result = _run_cmd(f"sudo mysql \\`{name}\\` < {path}")
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Import failed: {result.stderr}")
+    finally:
+        os.unlink(path)
+
+    return {"message": f"Successfully imported {file.filename} into {name}"}
+
+
 @router.get("/mysql/users")
 async def list_mysql_users(current_user=Depends(get_current_user)):
     """List MySQL users."""
@@ -204,3 +262,51 @@ async def delete_mongodb_database(name: str, current_user=Depends(get_current_us
     if result.returncode != 0:
         raise HTTPException(status_code=500, detail=result.stderr)
     return {"message": f"MongoDB database '{name}' deleted"}
+
+
+@router.get("/mongodb/databases/{name}/export")
+async def export_mongodb_database(name: str, token: str = None):
+    """Export a MongoDB database as a .gz archive."""
+    user = await get_current_user_ws(token) if token else None
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    async def generate():
+        proc = await asyncio.create_subprocess_shell(
+            f"sudo mongodump --archive --gzip --db {name}",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        try:
+            while True:
+                chunk = await proc.stdout.read(65536)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            if proc.returncode is None:
+                proc.terminate()
+
+    return StreamingResponse(
+        generate(),
+        media_type="application/gzip",
+        headers={"Content-Disposition": f"attachment; filename={name}.gz"}
+    )
+
+
+@router.post("/mongodb/databases/{name}/import")
+async def import_mongodb_database(name: str, file: UploadFile = File(...), current_user=Depends(get_current_user)):
+    """Import a .gz archive into a MongoDB database."""
+    fd, path = tempfile.mkstemp(suffix=".gz")
+    try:
+        with os.fdopen(fd, 'wb') as f:
+            while chunk := await file.read(65536):
+                f.write(chunk)
+                
+        result = _run_cmd(f"sudo mongorestore --archive={path} --gzip --nsInclude='{name}.*' --nsFrom='*.*' --nsTo='{name}.*'")
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Import failed: {result.stderr}")
+    finally:
+        os.unlink(path)
+
+    return {"message": f"Successfully imported {file.filename} into {name}"}
